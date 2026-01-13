@@ -8,3 +8,19 @@ def read_sheets(sheet_id, sheet_name=None):
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
     return pd.read_csv(url)
+
+#FUNCTION CONVERT STR TO NUMERIC WITH ERROR HANDLING
+def clean_numeric(df, cols):
+    df = df.copy()
+    
+    for col in cols:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(r'[^\d\-\.]', '', regex=True)
+                .replace('', pd.NA)
+            )
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    return df

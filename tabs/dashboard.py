@@ -72,6 +72,14 @@ def render():
     # CLEAN DATA
     tailor_df["Kode Penjahit"] = tailor_df["Kode Penjahit"].astype(str).str.strip()
 
+    # --- [TAMBAHKAN INI] ---
+    # Hapus data ganda berdasarkan Kode Penjahit agar hitungannya pas
+    tailor_df = tailor_df.drop_duplicates(subset=["Kode Penjahit"]) 
+    # -----------------------
+
+    # FILTER PENJAHIT AKTIF
+    active_tailor_df = tailor_df[tailor_df["Kode Penjahit"] != "Non Aktif"]
+
 
     # === CLEAN & PREPARE PROJECT DATA ===
     tanggal_col = "Tanggal Pemesanan"

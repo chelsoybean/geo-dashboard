@@ -1,8 +1,10 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
+from datetime import date, timedelta
 
 from script import *
+from models import *
 
 def render():
     st.title("PROJECT")
@@ -215,7 +217,7 @@ def render():
 
     col_chart2 = st.columns(2)
     with col_chart2[0]:
-        st.subheader("Rata-rata Cost Variance by Category")
+        st.subheader("Mean Cost Variance by Category")
         chart = (
             alt.Chart(cv_summary)
             .mark_bar()
@@ -257,4 +259,98 @@ def render():
 
         st.altair_chart(chart, use_container_width=True)
 
+    #RECOMENDATION SECTION
+    st.subheader("Estimasi Project")
+    kategori_list = sorted(project_df['Kategori'].dropna().unique())
+
+    days_val = "—"
+    overtime_val = "—"
+    possibility_val = "—"
+
+    # ================= INPUT SECTION =================
+    with st.form("project_form"):
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            category = st.selectbox(
+                "Category",
+                kategori_list
+            )
+
+        with col2:
+            qty = st.number_input(
+                "Qty",
+                min_value=1,
+                step=1,
+                format="%d"
+            )
+
+        with col3:
+            dateline = st.date_input(
+                "Dateline",
+                min_value=date.today() + timedelta(days=1)
+            )
+
+        with col4:
+            priority = st.selectbox(
+                "Priority",
+                ["Urgent", "Normal"]
+            )
+
+        submitted = st.form_submit_button("Run Estimation")
+    
+    if submitted:
+        result = estimate_project_duration(
+            df_tailor=tailor_df,
+            kategori=category,
+            total_qty=qty
+        )
+
+        # assign to display
+        st.write("DEBUG result:", result)
+        if result.get("status") == "FAILED":
+            st.error(f"⚠️ Failed: {result.get('reason', 'Tidak bisa dikerjakan')}")
+            days_val = "—"
+            overtime_val = "—"
+            possibility_val = "—"
+        else:
+            days_val = f"{result['estimasi_hari']} days"
+        # days_val = f"{int(result['estimasi_hari'])} days"
+
+    # ================= OUTPUT SECTION =================
+    st.markdown("### ML Estimation Output")
+
+    out1, out2, out3 = st.columns(3)
+
+    with out1:
+        st.metric(
+            label="Estimated Days",
+            value= days_val,  # placeholder
+            help="Estimated working days required"
+        )
+
+    with out2:
+        st.metric(
+            label="Overtime Risk",
+            value=overtime_val,  # low / medium / high nanti
+            help="Risk level of overtime"
+        )
+
+    with out3:
+        st.metric(
+            label="Possibility",
+            value=possibility_val,  # nanti misal %
+            help="Estimated success / completion probability"
+        )
+    
+    #DISPLAY RECOMENDATION TAILORS TABLES
+    st.subheader("Available Tailors for This Project")
+    selected_col = ['Kode Penjahit', 'Nama', 'Usia', 'Skill_Final',
+                    'Kapasitas_Harian', 'Index_Kapasitas',]
+    if submitted:
+        if result.get("status") == "FAILED":
+            st.error("⚠️ There is no available tailor for this project category.")
+        else:
+            recommend_tailors_df = result.get("tailor_recommended")
+            st.dataframe(recommend_tailors_df[selected_col])
 

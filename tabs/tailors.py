@@ -18,10 +18,13 @@ def render():
         border-radius: 10px;
         text-align: center;
         color: white;
-        min-height: 100px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .metric-title {
-        font-size: 12px;
+        font-size: 13px;
         opacity: 0.8;
         margin-bottom: 10px;
     }
@@ -30,9 +33,27 @@ def render():
         font-weight: bold;
     }
     .metric-subtitle {
-        font-size: 14px;
+        font-size: 12px;
         opacity: 0.7;
         margin-top: 5px;
+    }
+    .scoring-box {
+        background-color: #312e81;
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+    }
+    .scoring-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        font-size: 14px;
+    }
+    .scoring-label {
+        opacity: 0.9;
+    }
+    .scoring-value {
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -43,8 +64,8 @@ def render():
 
     # CLEAN DATA
     tailor_df["Kode Penjahit"] = tailor_df["Kode Penjahit"].astype(str).str.strip()
-    # --- [TAMBAHKAN INI] ---
-    # Ini akan membuat len() nanti hasilnya jadi 109 (sama dengan dashboard)
+    
+    # Hapus duplikat
     tailor_df = tailor_df.drop_duplicates(subset=["Kode Penjahit"])
     
     # Konversi kolom numerik
@@ -54,66 +75,88 @@ def render():
                     "Celana Pramuka Seragam (Pcs/hari)", "Kemeja Kerja (Pcs/hari)",
                     "Custom (Sulit) (Pcs/hari)"]
     
-    tailor_df = clean_numeric(tailor_df, numeric_cols)
+    for col in numeric_cols:
+        if col in tailor_df.columns:
+            tailor_df[col] = pd.to_numeric(tailor_df[col], errors='coerce').fillna(0)
 
     # Filter penjahit aktif
     active_tailors = tailor_df[tailor_df["Kode Penjahit"] != "Non Aktif"]
 
-    # === METRICS SECTION ===
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # === HITUNG METRICS ===
+    avg_kapasitas = active_tailors["Kapasitas_Harian"].mean()
+    total_kapasitas = active_tailors["Kapasitas_Harian"].sum()
+
+    avg_kerapian = active_tailors["Kerapian"].mean()
+    avg_tepat_waktu = active_tailors["Ketepatan Waktu"].mean()
+    avg_qty = active_tailors["Quantity"].mean()
+    avg_komitmen = active_tailors["Komitmen"].mean()
+    avg_usia = active_tailors["Usia"].mean()
+    
+    # --- [TAMBAHAN BARU] HITUNG OVERALL SCORE ---
+    # Kita rata-rata 3 komponen utama (Rapi, Tepat, Komit) jadi satu nilai
+    overall_score = (avg_kerapian + avg_tepat_waktu + avg_komitmen + avg_qty) / 4
+    # ---------------------------------------------
+
+    # Hitung persentase keluarga miskin
+    if "Kategori" in active_tailors.columns:
+        # 1. Ambil kolom, ubah jadi string, huruf kecil (lowercase), dan hapus spasi
+        status_series = active_tailors["Kategori"].astype(str).str.lower().str.strip()
+        
+        # 2. FILTER LOGIC:
+        # Cari yang diawali kata "miskin"
+        # Menangkap: "miskin non ekstrem", "miskin ekstrem"
+        # Menolak: "non miskin", "belum terdata"
+        miskin_count = status_series[status_series.str.startswith("miskin")].shape[0]
+        
+        persen_miskin = (miskin_count / len(active_tailors)) * 100 if len(active_tailors) > 0 else 0
+    else:
+        persen_miskin = 0
+
+    # === METRICS SECTION (5 KOLOM BARU) ===
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        total_active = len(active_tailors)
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">Aktif</div>
-            <div class="metric-value">{total_active}</div>
+            <div class="metric-title">Rata-rata Kapasitas</div>
+            <div class="metric-value">{avg_kapasitas:.1f}</div>
+            <div class="metric-subtitle">pcs/hari</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
-        avg_rapi = active_tailors["Kerapian"].mean()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Avg Kerapian</div>
-            <div class="metric-value">{avg_rapi:.1f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        avg_tepat = active_tailors["Ketepatan Waktu"].mean()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Tepat Waktu</div>
-            <div class="metric-value">{avg_tepat:.1f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        avg_qty = active_tailors["Quantity"].mean()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Avg Qty</div>
-            <div class="metric-value">{avg_qty:.1f}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col5:
-        avg_komit = active_tailors["Komitmen"].mean()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Komitmen</div>
-            <div class="metric-value">{avg_komit:.1f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col6:
-        total_kapasitas = active_tailors["Kapasitas_Harian"].sum()
         st.markdown(f"""
         <div class="metric-card" style="background-color: #064e3b;">
             <div class="metric-title">Total Kapasitas</div>
             <div class="metric-value">{int(total_kapasitas)}</div>
             <div class="metric-subtitle">pcs/hari</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card" style="background-color: #312e81; border: 1px solid #4338ca;">
+            <div class="metric-title">Quality Score</div>
+            <div class="metric-value">{overall_score:.2%}</div>
+            <div class="metric-subtitle">Rata-rata Kinerja Total</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Keluarga Miskin</div>
+            <div class="metric-value">{persen_miskin:.1f}%</div>
+            <div class="metric-subtitle">dari total penjahit</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col5:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Rata-rata Usia</div>
+            <div class="metric-value">{avg_usia:.1f}</div>
+            <div class="metric-subtitle">tahun</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -124,12 +167,14 @@ def render():
 
     # CHART 1: Perbandingan Kecamatan (Bar Chart)
     with chart_row1_col1:
-        st.subheader("Perbandinan Kecamatan")
+        st.subheader("Perbandingan Kecamatan")
         if "Kecamatan" in active_tailors.columns:
             kec_data = active_tailors["Kecamatan"].value_counts().reset_index()
             kec_data.columns = ["Kecamatan", "Jumlah"]
+            kec_data = kec_data.sort_values("Jumlah", ascending=True)  # Sort ascending
             
-            fig1 = px.bar(kec_data, x="Kecamatan", y="Jumlah",
+            fig1 = px.bar(kec_data, x="Jumlah", y="Kecamatan",
+                         orientation='h',
                          color="Jumlah",
                          color_continuous_scale=["#fbbf24", "#f59e0b", "#d97706", "#b45309"],
                          text="Jumlah")
@@ -137,8 +182,8 @@ def render():
             fig1.update_layout(
                 showlegend=False,
                 height=400,
-                xaxis_title="",
-                yaxis_title="Jumlah Penjahit",
+                xaxis_title="Jumlah Penjahit",
+                yaxis_title="",
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='white')

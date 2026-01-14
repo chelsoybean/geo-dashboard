@@ -3,7 +3,7 @@ import pandas as pd
 
 
 from script import *
-
+import plotly.express as px
 
 def render():
     st.title("Dashboard")
@@ -215,22 +215,48 @@ def render():
         st.area_chart(rev_data.set_index("Bulan"), color="#064e3b")
 
 
-    # CHART 3: Distribusi Kategori Project
+    # CHART 3: Distribusi Kategori Project (FIXED SORTING)
     with chart_row2_col1:
         st.subheader("Distribusi Kategori Project")
         if "Kategori" in filtered_df.columns:
-            cat_counts = filtered_df["Kategori"].value_counts()
-            st.bar_chart(cat_counts)
+            # Hitung jumlah
+            cat_counts = filtered_df["Kategori"].value_counts().reset_index()
+            cat_counts.columns = ["Kategori", "Jumlah"] # Rename kolom
+            
+            # Buat Chart dengan Plotly
+            fig_cat = px.bar(cat_counts, x="Kategori", y="Jumlah", 
+                             text="Jumlah") # Menampilkan angkanya
+            
+            # KUNCI AGAR URUT: categoryorder='total descending' (Terbanyak di kiri)
+            fig_cat.update_layout(
+                xaxis={'categoryorder':'total descending'}, 
+                height=400
+            )
+            st.plotly_chart(fig_cat, use_container_width=True)
+
         else:
             st.write("Kolom 'Kategori' tidak ditemukan.")
 
 
-    # CHART 4: BAR CHART (Top 10 Instansi)
+    # CHART 4: Top 10 Instansi (FIXED SORTING)
     with chart_row2_col2:
         st.subheader("Top 10 Instansi")
         if "Instansi" in filtered_df.columns:
-            inst_counts = filtered_df["Instansi"].value_counts().head(10)
-            st.bar_chart(inst_counts, color="#312e81")
+            # Hitung Top 10
+            inst_counts = filtered_df["Instansi"].value_counts().head(10).reset_index()
+            inst_counts.columns = ["Instansi", "Jumlah"]
+            
+            # Buat Chart
+            fig_inst = px.bar(inst_counts, x="Instansi", y="Jumlah",
+                              color="Jumlah", # Opsional: Warna gradasi
+                              ) # Pilihan warna
+            
+            # KUNCI AGAR URUT
+            fig_inst.update_layout(
+                xaxis={'categoryorder':'total descending'}, 
+                height=400
+            )
+            st.plotly_chart(fig_inst, use_container_width=True)
+
         else:
             st.write("Kolom 'Instansi' tidak ditemukan.")
-

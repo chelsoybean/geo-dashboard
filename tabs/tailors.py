@@ -167,7 +167,7 @@ def render():
 
     # CHART 1: Perbandingan Kecamatan (Bar Chart)
     with chart_row1_col1:
-        st.subheader("Dristrict Distribution")
+        st.subheader("District Distribution")
         if "Kecamatan" in active_tailors.columns:
             kec_data = active_tailors["Kecamatan"].value_counts().reset_index()
             kec_data.columns = ["Kecamatan", "Jumlah"]

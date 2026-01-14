@@ -202,7 +202,7 @@ def render():
             ))
             fig2.update_layout(
                 height=400,
-                xaxis_title="Total Kapasitas (pcs/hari)",
+                xaxis_title="Total Capacity (pcs/day)",
                 yaxis_title="",
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -219,39 +219,39 @@ def render():
     
     with filter_col1:
         if "Kecamatan" in active_tailors.columns:
-            kecamatan_list = ["Semua"] + sorted(active_tailors["Kecamatan"].unique().tolist())
-            selected_kec = st.selectbox("Pilih Kecamatan", kecamatan_list)
+            kecamatan_list = ["All"] + sorted(active_tailors["Kecamatan"].unique().tolist())
+            selected_kec = st.selectbox("Select District", kecamatan_list)
         else:
-            selected_kec = "Semua"
+            selected_kec = "All"
     
     with filter_col2:
         if "Cluster" in active_tailors.columns:
-            cluster_list = ["Semua"] + sorted(active_tailors["Cluster"].dropna().unique().tolist())
-            selected_cluster = st.selectbox("Pilih Cluster", cluster_list)
+            cluster_list = ["All"] + sorted(active_tailors["Cluster"].dropna().unique().tolist())
+            selected_cluster = st.selectbox("Select Cluster", cluster_list)
         else:
-            selected_cluster = "Semua"
-    
+            selected_cluster = "All"
+
     with filter_col3:
         if "Kategori_Pekerja" in active_tailors.columns:
-            kategori_list = ["Semua"] + sorted(active_tailors["Kategori_Pekerja"].dropna().unique().tolist())
-            selected_kategori = st.selectbox("Pilih Kategori Pekerja", kategori_list)
+            kategori_list = ["All"] + sorted(active_tailors["Kategori_Pekerja"].dropna().unique().tolist())
+            selected_kategori = st.selectbox("Select Worker Category", kategori_list)
         else:
-            selected_kategori = "Semua"
+            selected_kategori = "All"
 
     # Apply filters
     filtered_df = active_tailors.copy()
-    if selected_kec != "Semua":
+    if selected_kec != "All":
         filtered_df = filtered_df[filtered_df["Kecamatan"] == selected_kec]
-    if selected_cluster != "Semua":
+    if selected_cluster != "All":
         filtered_df = filtered_df[filtered_df["Cluster"] == selected_cluster]
-    if selected_kategori != "Semua":
+    if selected_kategori != "All":
         filtered_df = filtered_df[filtered_df["Kategori_Pekerja"] == selected_kategori]
 
     st.markdown("---")
 
     # === PROFIL PEKERJA TABLE ===
-    st.subheader("Profil Pekerja")
-    st.write(f"Menampilkan {len(filtered_df)} dari {len(active_tailors)} penjahit")
+    st.subheader("Tailors Profile")
+    st.write(f"Showing {len(filtered_df)} from {len(active_tailors)} tailors")
 
     # Pilih kolom yang ingin ditampilkan
     display_cols = ["Kode Penjahit", "Nama", "Kecamatan", "Usia", "Kerapian", 
@@ -267,10 +267,10 @@ def render():
     # Sorting options
     sort_col1, sort_col2 = st.columns([1, 3])
     with sort_col1:
-        sort_by = st.selectbox("Urutkan berdasarkan", display_cols)
+        sort_by = st.selectbox("Sort by", display_cols)
     with sort_col2:
-        sort_order = st.radio("Urutan", ["Ascending", "Descending"], horizontal=True)
-    
+        sort_order = st.radio("Order", ["Ascending", "Descending"], horizontal=True)
+
     ascending = sort_order == "Ascending"
     display_df = display_df.sort_values(sort_by, ascending=ascending)
 

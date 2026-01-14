@@ -54,9 +54,7 @@ def render():
                     "Celana Pramuka Seragam (Pcs/hari)", "Kemeja Kerja (Pcs/hari)",
                     "Custom (Sulit) (Pcs/hari)"]
     
-    for col in numeric_cols:
-        if col in tailor_df.columns:
-            tailor_df[col] = pd.to_numeric(tailor_df[col], errors='coerce').fillna(0)
+    tailor_df = clean_numeric(tailor_df, numeric_cols)
 
     # Filter penjahit aktif
     active_tailors = tailor_df[tailor_df["Kode Penjahit"] != "Non Aktif"]

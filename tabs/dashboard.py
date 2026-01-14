@@ -88,52 +88,67 @@ def render():
     project_df["Bulan"] = project_df[tanggal_col].dt.strftime('%b')
 
 
-    # ===== PERBAIKAN UTAMA: KONVERSI KOLOM NUMERIC =====
-    def clean_numeric(value):
-        """Konversi string ke numeric (hapus Rp, titik, koma)"""
-        if pd.isna(value):
-            return 0
-        if isinstance(value, (int, float)):
-            return value
-        # Hapus 'Rp', spasi, titik pemisah ribuan
-        value = (
-        str(value)
-        .replace("Rp", "")
-        .replace(".", "")
-        .replace(",", "")
-        .strip()
-    )
-
-
-        return pd.to_numeric(value, errors="coerce") or 0
-
-
-    # Konversi kolom yang dibutuhkan
-    numeric_cols = ["Jumlah", "Profit", "Total jual", "RAB", "Realisasi"]
-    for col in numeric_cols:
-        if col in project_df.columns:
-            project_df[col] = project_df[col].apply(clean_numeric)
-
-
     # FILTER PENJAHIT AKTIF
     active_tailor_df = tailor_df[tailor_df["Kode Penjahit"] != "Non Aktif"]
     total_penjahit_aktif = active_tailor_df["Kode Penjahit"].nunique()
 
+    #CONVERT TYPE
+    num_cols = [
+    'Qty', 'Harga', 'Jumlah', 'Total jual',
+    'RAB', 'Realisasi', 'Profit',
+    'Gap', 'Margin', 'Markup'
+    ]
+
+    project_df = clean_numeric(project_df, num_cols)
+
+    project_df['Tanggal Pemesanan'] = pd.to_datetime(project_df['Tanggal Pemesanan'], errors='coerce')
+    project_df['year'] = project_df['Tanggal Pemesanan'].dt.year
+    project_df['month'] = project_df['Tanggal Pemesanan'].dt.month
+    project_df['month_name'] = project_df['Tanggal Pemesanan'].dt.strftime('%b')
+
+
+    #FILTERS
+    years = sorted(project_df['year'].dropna().unique())
+    year_options = ["ALL"] + years
+
+    col_filter = st.columns([2,6], gap="large")
+    with col_filter[0]:
+        selected_year = st.selectbox(
+            "Year",
+            year_options,
+            index=0,
+        )
+
+        if selected_year == "ALL":
+            filtered_df = project_df.copy()
+        else:
+            filtered_df = project_df[project_df['year'] == selected_year]
+
+    with col_filter[1]:
+        month_map = (
+        filtered_df[['month', 'month_name']]
+        .drop_duplicates()
+        .sort_values('month')
+        )
+
+        selected_months = st.pills(
+            "Month",
+            options=month_map['month_name'],
+            default=month_map['month_name'],
+            selection_mode="multi"
+        )
+
+        filtered_df = filtered_df[
+            filtered_df['month_name'].isin(selected_months)
+        ]
 
     # --- LAYOUT ATAS (METRICS + SLICER) ---
     top_left, top_right = st.columns([3, 1], gap="medium")
-   
-    with top_right:
-        # Filter Tahun
-        list_tahun = sorted(project_df["Tahun"].unique())
-        pilihan_tahun = st.multiselect("Pilih Tahun", list_tahun, default=list_tahun)
-        df_filtered = project_df[project_df["Tahun"].isin(pilihan_tahun)]
-
 
     # --- HITUNG METRIK BERDASARKAN FILTER ---
-    if "Jumlah" in df_filtered.columns:
-        total_revenue = df_filtered["Jumlah"].sum()
-        total_profit = df_filtered["Profit"].sum()
+    if "Jumlah" in filtered_df.columns:
+        total_revenue = filtered_df["Jumlah"].sum()
+        total_profit = filtered_df["Profit"].sum()
     else:
         total_revenue = 0
         total_profit = 0
@@ -180,7 +195,7 @@ def render():
     # CHART 1: LINE CHART (Project per Bulan)
     with chart_row1_col1:
         st.subheader("Tren Jumlah Project")
-        line_data = df_filtered.groupby("Bulan").size().reset_index(name="Jumlah")
+        line_data = filtered_df.groupby("Bulan").size().reset_index(name="Jumlah")
 
 
         months_order = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -194,7 +209,7 @@ def render():
     # CHART 2: Area Chart Revenue Bulanan (dari data real)
     with chart_row1_col2:
         st.subheader("Tren Revenue (Bulanan)")
-        rev_data = df_filtered.groupby("Bulan")["Jumlah"].sum().reset_index()
+        rev_data = filtered_df.groupby("Bulan")["Jumlah"].sum().reset_index()
         rev_data["Bulan"] = pd.Categorical(rev_data["Bulan"], categories=months_order, ordered=True)
         rev_data = rev_data.sort_values("Bulan")
         st.area_chart(rev_data.set_index("Bulan"), color="#064e3b")
@@ -203,8 +218,8 @@ def render():
     # CHART 3: Distribusi Kategori Project
     with chart_row2_col1:
         st.subheader("Distribusi Kategori Project")
-        if "Kategori" in df_filtered.columns:
-            cat_counts = df_filtered["Kategori"].value_counts()
+        if "Kategori" in filtered_df.columns:
+            cat_counts = filtered_df["Kategori"].value_counts()
             st.bar_chart(cat_counts)
         else:
             st.write("Kolom 'Kategori' tidak ditemukan.")
@@ -213,8 +228,8 @@ def render():
     # CHART 4: BAR CHART (Top 10 Instansi)
     with chart_row2_col2:
         st.subheader("Top 10 Instansi")
-        if "Instansi" in df_filtered.columns:
-            inst_counts = df_filtered["Instansi"].value_counts().head(10)
+        if "Instansi" in filtered_df.columns:
+            inst_counts = filtered_df["Instansi"].value_counts().head(10)
             st.bar_chart(inst_counts, color="#312e81")
         else:
             st.write("Kolom 'Instansi' tidak ditemukan.")

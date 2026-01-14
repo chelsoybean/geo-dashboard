@@ -6,7 +6,7 @@ from script import *
 import plotly.express as px
 
 def render():
-    st.title("Dashboard")
+    st.title("GENERAL DASHBOARD")
 
 
     # CSS REVISI
@@ -194,7 +194,7 @@ def render():
 
     # CHART 1: LINE CHART (Project per Bulan)
     with chart_row1_col1:
-        st.subheader("Tren Jumlah Project")
+        st.subheader("Tren Total Quantity Project")
         line_data = filtered_df.groupby("Bulan").size().reset_index(name="Jumlah")
 
 
@@ -208,7 +208,7 @@ def render():
 
     # CHART 2: Area Chart Revenue Bulanan (dari data real)
     with chart_row1_col2:
-        st.subheader("Tren Revenue (Bulanan)")
+        st.subheader("Tren Revenue (Monthly)")
         rev_data = filtered_df.groupby("Bulan")["Jumlah"].sum().reset_index()
         rev_data["Bulan"] = pd.Categorical(rev_data["Bulan"], categories=months_order, ordered=True)
         rev_data = rev_data.sort_values("Bulan")
@@ -217,15 +217,15 @@ def render():
 
     # CHART 3: Distribusi Kategori Project (FIXED SORTING)
     with chart_row2_col1:
-        st.subheader("Distribusi Kategori Project")
+        st.subheader("Project Category Distribution")
         if "Kategori" in filtered_df.columns:
             # Hitung jumlah
             cat_counts = filtered_df["Kategori"].value_counts().reset_index()
-            cat_counts.columns = ["Kategori", "Jumlah"] # Rename kolom
+            cat_counts.columns = ["Category", "Qty"] # Rename kolom
             
             # Buat Chart dengan Plotly
-            fig_cat = px.bar(cat_counts, x="Kategori", y="Jumlah", 
-                             text="Jumlah") # Menampilkan angkanya
+            fig_cat = px.bar(cat_counts, x="Category", y="Qty", 
+                             text="Qty") # Menampilkan angkanya
             
             # KUNCI AGAR URUT: categoryorder='total descending' (Terbanyak di kiri)
             fig_cat.update_layout(
@@ -244,12 +244,10 @@ def render():
         if "Instansi" in filtered_df.columns:
             # Hitung Top 10
             inst_counts = filtered_df["Instansi"].value_counts().head(10).reset_index()
-            inst_counts.columns = ["Instansi", "Jumlah"]
+            inst_counts.columns = ["Instansi", "Qty"]
             
             # Buat Chart
-            fig_inst = px.bar(inst_counts, x="Instansi", y="Jumlah",
-                              color="Jumlah", # Opsional: Warna gradasi
-                              ) # Pilihan warna
+            fig_inst = px.bar(inst_counts, x="Instansi", y="Qty", text="Qty") 
             
             # KUNCI AGAR URUT
             fig_inst.update_layout(

@@ -6,8 +6,8 @@ import plotly.graph_objects as go
 from script import *
 
 def render():
-    st.title("Data Penjahit")
-    st.write("Dashboard Analisis Data Penjahit")
+    st.title("TAILORS")
+    # st.write("Dashboard Analisis Data Penjahit")
 
     # CSS untuk metric cards
     st.markdown("""
@@ -118,18 +118,18 @@ def render():
     with col1:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">Rata-rata Kapasitas</div>
+            <div class="metric-title">Capacity Mean</div>
             <div class="metric-value">{avg_kapasitas:.1f}</div>
-            <div class="metric-subtitle">pcs/hari</div>
+            <div class="metric-subtitle">pcs/day</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""
         <div class="metric-card" style="background-color: #064e3b;">
-            <div class="metric-title">Total Kapasitas</div>
+            <div class="metric-title">Total Capacity</div>
             <div class="metric-value">{int(total_kapasitas)}</div>
-            <div class="metric-subtitle">pcs/hari</div>
+            <div class="metric-subtitle">pcs/day</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -138,25 +138,25 @@ def render():
         <div class="metric-card" style="background-color: #312e81; border: 1px solid #4338ca;">
             <div class="metric-title">Quality Score</div>
             <div class="metric-value">{overall_score:.2%}</div>
-            <div class="metric-subtitle">Rata-rata Kinerja Total</div>
+            <div class="metric-subtitle">Mean Total Peformance</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col4:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">Keluarga Miskin</div>
+            <div class="metric-title">Low-income family:</div>
             <div class="metric-value">{persen_miskin:.1f}%</div>
-            <div class="metric-subtitle">dari total penjahit</div>
+            <div class="metric-subtitle">from total tailors</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col5:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">Rata-rata Usia</div>
+            <div class="metric-title">Average Age</div>
             <div class="metric-value">{avg_usia:.1f}</div>
-            <div class="metric-subtitle">tahun</div>
+            <div class="metric-subtitle">years</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -167,32 +167,27 @@ def render():
 
     # CHART 1: Perbandingan Kecamatan (Bar Chart)
     with chart_row1_col1:
-        st.subheader("Perbandingan Kecamatan")
+        st.subheader("Dristrict Distribution")
         if "Kecamatan" in active_tailors.columns:
             kec_data = active_tailors["Kecamatan"].value_counts().reset_index()
             kec_data.columns = ["Kecamatan", "Jumlah"]
             kec_data = kec_data.sort_values("Jumlah", ascending=True)  # Sort ascending
             
-            fig1 = px.bar(kec_data, x="Jumlah", y="Kecamatan",
-                         orientation='h',
-                         color="Jumlah",
-                         color_continuous_scale=["#fbbf24", "#f59e0b", "#d97706", "#b45309"],
-                         text="Jumlah")
-            fig1.update_traces(textposition='outside')
-            fig1.update_layout(
-                showlegend=False,
-                height=400,
-                xaxis_title="Jumlah Penjahit",
-                yaxis_title="",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white')
+            fig1 = px.pie(
+                kec_data,
+                names="Kecamatan",
+                values="Jumlah",
+                color="Jumlah",  # opsional, kalau mau pakai skala warna
+                hole=0  # kalau mau donut chart bisa kasih nilai >0, misal 0.3
             )
+
+            # Kalau mau tampilkan persentase atau label di pie chart
+            fig1.update_traces(textinfo='percent+label')
             st.plotly_chart(fig1, use_container_width=True)
 
     # CHART 2: Kapasitas Harian (Bar Chart Horizontal)
     with chart_row1_col2:
-        st.subheader("Kapasitas Harian")
+        st.subheader("Daily Capacity")
         if "Kategori_Pekerja" in active_tailors.columns:
             kap_data = active_tailors.groupby("Kategori_Pekerja")["Kapasitas_Harian"].sum().reset_index()
             kap_data = kap_data.sort_values("Kapasitas_Harian", ascending=True)

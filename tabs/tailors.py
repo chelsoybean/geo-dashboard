@@ -70,10 +70,10 @@ def render():
     
     # Konversi kolom numerik
     numeric_cols = ["Usia", "Kerapian", "Ketepatan Waktu", "Quantity", "Komitmen", 
-                    "Index_Kapasitas", "Kapasitas_Harian", "Seragam Hem Putih (Pcs/hari)",
-                    "Seragam Hem Pramuka (Pcs/hari)", "Rok Seragam (Pcs/hari)",
-                    "Celana Pramuka Seragam (Pcs/hari)", "Kemeja Kerja (Pcs/hari)",
-                    "Custom (Sulit) (Pcs/hari)"]
+                    "Index_Kapasitas", "Kapasitas_Harian", "Seragam Hem Putih",
+                    "Seragam Hem Pramuka", "Rok Seragam",
+                    "Celana Seragam", "Kemeja Kerja",
+                    "Custom Sulit"]
     
     for col in numeric_cols:
         if col in tailor_df.columns:

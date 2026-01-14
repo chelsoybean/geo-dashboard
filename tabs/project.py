@@ -303,11 +303,13 @@ def render():
         result = estimate_project_duration(
             df_tailor=tailor_df,
             kategori=category,
-            total_qty=qty
+            total_qty=qty,
+            deadline=dateline,
+            priority=priority
         )
 
         # assign to display
-        st.write("DEBUG result:", result)
+        # st.write("DEBUG result:", result)
         if result.get("status") == "FAILED":
             st.error(f"⚠️ Failed: {result.get('reason', 'Tidak bisa dikerjakan')}")
             days_val = "—"
@@ -315,7 +317,8 @@ def render():
             possibility_val = "—"
         else:
             days_val = f"{result['estimasi_hari']} days"
-        # days_val = f"{int(result['estimasi_hari'])} days"
+            overtime_val = result['overtime_risk']
+            possibility_val = f"{result['possibility_pct']:.2f} %"
 
     # ================= OUTPUT SECTION =================
     st.markdown("### ML Estimation Output")
@@ -344,10 +347,10 @@ def render():
         )
     
     #DISPLAY RECOMENDATION TAILORS TABLES
-    st.subheader("Available Tailors for This Project")
     selected_col = ['Kode Penjahit', 'Nama', 'Usia', 'Skill_Final',
                     'Kapasitas_Harian', 'Index_Kapasitas',]
     if submitted:
+        st.subheader("Available Tailors for This Project")
         if result.get("status") == "FAILED":
             st.error("⚠️ There is no available tailor for this project category.")
         else:

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 
+from datetime import date, timedelta
 from script import *
 
 #READ DATA FROM GOOGLE SHEETS
@@ -55,7 +56,7 @@ numeric_cols = ["Usia", "Kerapian", "Ketepatan Waktu", "Quantity", "Komitmen",
 
 project_df = clean_numeric(project_df, num_cols)
 
-def estimate_project_duration(df_tailor, kategori, total_qty):
+def estimate_project_duration(df_tailor, kategori, total_qty, deadline: date, start_date: date = None, priority=None):
     # ambil mapping kapasitas
     kapasitas_cols = CATEGORY_MAP.get(kategori)
 
@@ -101,24 +102,64 @@ def estimate_project_duration(df_tailor, kategori, total_qty):
     total_capacity_per_day = df_valid["effective_capacity"].sum()
 
     # estimasi hari
-    estimated_days = total_qty / total_capacity_per_day
+    estimated_days = math.ceil(total_qty / total_capacity_per_day)
+
+    if start_date is None:
+        start_date = date.today()
+
+    estimated_finish_date = start_date + timedelta(days=estimated_days)
+    days_over = (estimated_finish_date - deadline).days
+
+    if days_over <= 0:
+        overtime_risk = "LOW"
+    elif days_over <= 3:
+        overtime_risk = "MEDIUM"
+    else:
+        overtime_risk = "HIGH"
+
 
     # risk keterlambatan
     risk_score = df_valid["Ketepatan Waktu"].mean()
+    q1 = df_valid["Ketepatan Waktu"].quantile(0.25)
+    q3 = df_valid["Ketepatan Waktu"].quantile(0.75)
 
     risk_level = (
-        "HIGH" if risk_score < 0.6 else
-        "MEDIUM" if risk_score < 0.8 else
+        "HIGH" if risk_score < q1 else
+        "MEDIUM" if risk_score < q3 else
         "LOW"
     )
+
+    #Probability of On-Time Completion
+    base_possibility = risk_score * 100  # misal confidence_score diubah ke persen
+    deadline_buffer = (deadline - start_date).days - estimated_days
+
+    if deadline_buffer < 0:
+        # Kalau overtime gak boleh di urgent, langsung 0%
+        if priority.lower() == 'urgent':
+            possibility_pct = 0
+        else:
+            # Normal boleh overtime, tapi tetap 0% kalau waktunya benar-benar mepet
+            possibility_pct = max(0, base_possibility - 50)  # misal potong besar juga
+    elif deadline_buffer < 3:
+        # Buffer kecil, urgent kemungkinan turun lebih tajam
+        if priority.lower() == 'urgent':
+            possibility_pct = max(0, base_possibility - 40)
+        else:
+            possibility_pct = max(0, base_possibility - 20)
+    else:
+        # Buffer cukup, peluang sama base
+        possibility_pct = base_possibility
 
     return {
         "kategori": kategori,
         "qty": total_qty,
         "kapasitas_harian": math.ceil(total_capacity_per_day),
-        "estimasi_hari": math.ceil(estimated_days),
+        "estimasi_hari": estimated_days,
+        "risk_score": risk_score,
         "risk_level": risk_level,
         "confidence_score": round(risk_score, 2),
         "tailor_recommended": df_valid,
         "total_tailors": len(df_valid),
+        "overtime_risk": overtime_risk,
+        "possibility_pct": possibility_pct,
     }
